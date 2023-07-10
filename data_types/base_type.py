@@ -19,7 +19,8 @@ class BaseDataType():
         """
         self._width = width
         self._value = None
-        self.from_native(value)
+        if value is not None:
+            self.from_native(value)
 
     def __index__(self):
         """
@@ -31,13 +32,13 @@ class BaseDataType():
         """
         Return an string of value.
         """
-        return self.__class__.__name__ + "(" + str(self.to_native())
+        return self.__class__.__name__ + "(" + str(self.to_native()) + ")"
 
     def __repr__(self):
         """
         Return an string of value.
         """
-        return self.__class__.__name__ + "(" + str(self.to_native())
+        return self.__class__.__name__ + "(" + str(self.to_native()) + ")"
 
     @property
     def width(self) -> int:
@@ -82,46 +83,57 @@ class BaseDataType():
         """
         Get One bit from bit string.
         """
-        return (self.value >> idx) & 0x01
+        if isinstance(idx, slice):
+            if idx.start < idx.stop:
+                msb_ = idx.stop
+                lsb_ = idx.start
+            else:
+                msb_ = idx.start
+                lsb_ = idx.stop
+            width = msb_ - lsb_ + 1
+        elif isinstance(idx, tuple):
+            if idx[0] < idx[1]:
+                msb_ = idx[1]
+                lsb_ = idx[0]
+            else:
+                msb_ = idx[0]
+                lsb_ = idx[1]
+            width = msb_ - lsb_ + 1
+        else:
+            msb_ = idx
+            lsb_ = idx
+            width = 1
+
+        return (self.value >> lsb_) & ((1 << width) - 1)
 
     def __setitem__(self, idx: int, value: int):
         """
         Set one bit to bit string.
         """
-        if value & 0x01:
-            mask = 1 << idx
-            self.value = self.value | mask
+        if isinstance(idx, slice):
+            if idx.start < idx.stop:
+                msb_ = idx.stop
+                lsb_ = idx.start
+            else:
+                msb_ = idx.start
+                lsb_ = idx.stop
+            width = msb_ - lsb_ + 1
+        elif isinstance(idx, tuple):
+            if idx[0] < idx[1]:
+                msb_ = idx[1]
+                lsb_ = idx[0]
+            else:
+                msb_ = idx[0]
+                lsb_ = idx[1]
+            width = msb_ - lsb_ + 1
         else:
-            mask = ((1 << self.width) - 1) - (1 << idx)
-            self.value = self.value & mask
+            msb_ = idx
+            lsb_ = idx
+            width = 1
 
-    def __getslice__(self, msb: int, lsb: int) -> int:
-        """
-        Get One bit from bit string.
-        """
-        if msb < lsb:
-            msb_ = lsb
-            lsb_ = msb
-        else:
-            msb_ = msb
-            lsb_ = lsb
-        width = msb_ - lsb_ + 1
-
-        return (self.value >> lsb_) & ((1 << width) - 1)
-
-    def __setslice__(self, msb: int, lsb: int, field: int):
-        """
-        Set bit field to bit string.
-        """
-        if msb < lsb:
-            msb_ = lsb
-            lsb_ = msb
-        else:
-            msb_ = msb
-            lsb_ = lsb
-        width = msb_ - lsb_ + 1
-        field_ = field & ((1 << width) - 1)
-        self.value = self.value - (self.__getslice__(msb_, lsb_) << lsb)
+        field_ = value & ((1 << width) - 1)
+        old_value = (self.value >> lsb_) & ((1 << width) - 1)
+        self.value = self.value - (old_value << lsb_)
         self.value |= field_ << lsb_
 
     @property
