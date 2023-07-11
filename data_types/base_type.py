@@ -161,6 +161,10 @@ class BaseDataType():
         """
         Set one bit to bit string.
         """
+        # If value is None, ignore operation.
+        if value is None:
+            return
+
         if isinstance(idx, slice):
             if idx.start < idx.stop:
                 msb_ = idx.stop
