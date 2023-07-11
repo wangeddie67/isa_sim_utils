@@ -33,11 +33,14 @@ class Integer(BaseDataType):
         """
         return self._signed
 
-    def copy(self) -> Self:
+    def copy(self, width=None) -> Self:
         """
         Copy instance of this item
+
+        Args:
+            width: overwrite data width.
         """
-        return Integer(self.signed, self.width, self.value)
+        return Integer(self.signed, width if width else self.width, self.value)
 
     def to_native(self) -> int:
         """
@@ -86,11 +89,11 @@ class UInt(Integer):
         """
         super().__init__(False, width, value)
 
-    def copy(self) -> Self:
+    def copy(self, width=None) -> Self:
         """
         Copy instance of this item
         """
-        return UInt(self.width, self.value)
+        return UInt(width if width else self.width, self.value)
 
 class UInt8(UInt):
     """
@@ -105,7 +108,7 @@ class UInt8(UInt):
         """
         super().__init__(8, value)
 
-    def copy(self) -> Self:
+    def copy(self, width=None) -> Self:
         """
         Copy instance of this item
         """
@@ -124,11 +127,11 @@ class UInt16(UInt):
         """
         super().__init__(16, value)
 
-    def copy(self) -> Self:
+    def copy(self, width=None) -> Self:
         """
         Copy instance of this item
         """
-        return UInt8(self.value)
+        return UInt16(self.value)
 
 class UInt32(UInt):
     """
@@ -143,11 +146,11 @@ class UInt32(UInt):
         """
         super().__init__(32, value)
 
-    def copy(self) -> Self:
+    def copy(self, width=None) -> Self:
         """
         Copy instance of this item
         """
-        return UInt8(self.value)
+        return UInt32(self.value)
 
 class UInt64(UInt):
     """
@@ -162,11 +165,11 @@ class UInt64(UInt):
         """
         super().__init__(64, value)
 
-    def copy(self) -> Self:
+    def copy(self, width=None) -> Self:
         """
         Copy instance of this item
         """
-        return UInt8(self.value)
+        return UInt64(self.value)
 
 class SInt(Integer):
     """
@@ -183,11 +186,11 @@ class SInt(Integer):
         """
         super().__init__(False, width, value)
 
-    def copy(self) -> Self:
+    def copy(self, width=None) -> Self:
         """
         Copy instance of this item
         """
-        return SInt(self.width, self.value)
+        return SInt(width if width else self.width, self.value)
 
 class SInt8(SInt):
     """
@@ -202,7 +205,7 @@ class SInt8(SInt):
         """
         super().__init__(8, value)
 
-    def copy(self) -> Self:
+    def copy(self, width=None) -> Self:
         """
         Copy instance of this item
         """
@@ -221,11 +224,11 @@ class SInt16(SInt):
         """
         super().__init__(16, value)
 
-    def copy(self) -> Self:
+    def copy(self, width=None) -> Self:
         """
         Copy instance of this item
         """
-        return SInt8(self.value)
+        return SInt16(self.value)
 
 class SInt32(SInt):
     """
@@ -240,11 +243,11 @@ class SInt32(SInt):
         """
         super().__init__(32, value)
 
-    def copy(self) -> Self:
+    def copy(self, width=None) -> Self:
         """
         Copy instance of this item
         """
-        return SInt8(self.value)
+        return SInt32(self.value)
 
 class SInt64(SInt):
     """
@@ -259,8 +262,8 @@ class SInt64(SInt):
         """
         super().__init__(64, value)
 
-    def copy(self) -> Self:
+    def copy(self, width=None) -> Self:
         """
         Copy instance of this item
         """
-        return SInt8(self.value)
+        return SInt64(self.value)

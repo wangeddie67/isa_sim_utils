@@ -5,6 +5,12 @@ Base data type.
 from typing import Union, Any
 from typing_extensions import Self
 
+def _is_x(data) -> bool:
+    """
+    Return true if the data is X.
+    """
+    return isinstance(data, BaseDataType) and data.value is None
+
 class BaseDataType():
     """
     Base data type.
@@ -22,23 +28,54 @@ class BaseDataType():
         if value is not None:
             self.from_native(value)
 
+    def _is_x(self) -> bool:
+        """
+        Return true if the data is X.
+        """
+        return self.value is None
+
     def __index__(self):
         """
         Return an index of value, which can be convert to hex.
         """
-        return self.value & ((1 << self.width) - 1)
+        if self._is_x():
+            return 0
+        else:
+            return self.value & ((1 << self.width) - 1)
 
     def __str__(self):
         """
         Return an string of value.
         """
-        return self.__class__.__name__ + "(" + str(self.to_native()) + ")"
+        if self._is_x():
+            return ""
+        else:
+            return hex(self)
 
     def __repr__(self):
         """
         Return an string of value.
         """
-        return self.__class__.__name__ + "(" + str(self.to_native()) + ")"
+        if self._is_x():
+            return self.__class__.__name__ + "(" + str(None) + ")"
+        else:
+            return self.__class__.__name__ + "(" + str(self.to_native()) + ")"
+
+    def _raise_type_error(self, op, a, b = None):
+        """
+        raise type error.
+        """
+        if b:
+            msg = f"Type not support: {type(a)} {op} {type(b)}."
+        else:
+            msg = f"Type not support: {op} {type(a)}"
+        raise TypeError(msg)
+
+    def _raise_value_error(self):
+        """
+        raise value error.
+        """
+        raise ValueError("Cannot operate on X value.")
 
     @property
     def width(self) -> int:
@@ -61,9 +98,18 @@ class BaseDataType():
         """
         self._value = value & ((1 << self._width) - 1)
 
-    def copy(self) -> Self:
+    def set_x_value(self):
         """
-        Copy instance of this item
+        Set data value to x.
+        """
+        self._value = None
+
+    def copy(self, width=None) -> Self:
+        """
+        Copy instance of this item.
+
+        Args:
+            width: overwrite data width.
         """
         raise NotImplementedError("Implemented in inherent class.")
 
@@ -79,7 +125,7 @@ class BaseDataType():
         """
         raise NotImplementedError("Implemented in inherent class.")
 
-    def __getitem__(self, idx: int) -> int:
+    def __getitem__(self, idx: int) -> Self:
         """
         Get One bit from bit string.
         """
@@ -104,7 +150,12 @@ class BaseDataType():
             lsb_ = idx
             width = 1
 
-        return (self.value >> lsb_) & ((1 << width) - 1)
+        if self._is_x():
+            return self.copy(width)
+        else:
+            res = self.copy(width)
+            res.value = (self.value >> lsb_) & ((1 << width) - 1)
+            return res
 
     def __setitem__(self, idx: int, value: int):
         """
@@ -131,6 +182,9 @@ class BaseDataType():
             lsb_ = idx
             width = 1
 
+        if self._is_x():
+            self.value = 0
+
         field_ = value & ((1 << width) - 1)
         old_value = (self.value >> lsb_) & ((1 << width) - 1)
         self.value = self.value - (old_value << lsb_)
@@ -141,13 +195,19 @@ class BaseDataType():
         """
         Return MSB.
         """
-        return (self.value >> (self.width - 1)) & 0x01
+        if self._is_x():
+            self._raise_value_error()
+        else:
+            return (self.value >> (self.width - 1)) & 0x01
 
     @msb.setter
     def msb(self, value: int) -> int:
         """
         Set MSB.
         """
+        if self._is_x():
+            self.value = 0
+
         if value == 0:
             mask = (1 << (self.width - 1)) - 1
             self.value = self.value & mask
@@ -155,21 +215,14 @@ class BaseDataType():
             mask = 1 << (self.width - 1)
             self.value = self.value | mask
 
-    def _raise_type_error(self, op, a, b = None):
-        """
-        raise type error.
-        """
-        if b:
-            msg = f"Type not support: {type(a)} {op} {type(b)}."
-        else:
-            msg = f"Type not support: {op} {type(a)}"
-        raise TypeError(msg)
-
 
     def __add__(self, other) -> Self:
         """
         Overloading operator +.
         """
+        if self._is_x() or _is_x(other):
+            return self.copy().set_x_value()
+
         if isinstance(other, (int, float)):
             res = self.to_native() + other
         elif isinstance(other, BaseDataType):
@@ -191,6 +244,9 @@ class BaseDataType():
         """
         Overloading operator -.
         """
+        if self._is_x() or _is_x(other):
+            return self.copy().set_x_value()
+
         if isinstance(other, (int, float)):
             res = self.to_native() - other
         elif isinstance(other, BaseDataType):
@@ -212,6 +268,9 @@ class BaseDataType():
         """
         Overloading operator *
         """
+        if self._is_x() or _is_x(other):
+            return self.copy().set_x_value()
+
         if isinstance(other, (int, float)):
             res = self.to_native() * other
         elif isinstance(other, BaseDataType):
@@ -233,6 +292,9 @@ class BaseDataType():
         """
         Overloading operator /
         """
+        if self._is_x() or _is_x(other):
+            return self.copy().set_x_value()
+
         if isinstance(other, (int, float)):
             res = self.to_native() / other
         elif isinstance(other, BaseDataType):
@@ -254,6 +316,9 @@ class BaseDataType():
         """
         Overloading operator //
         """
+        if self._is_x() or _is_x(other):
+            return self.copy().set_x_value()
+
         if isinstance(other, (int, float)):
             res = self.to_native() // other
         elif isinstance(other, BaseDataType):
@@ -275,6 +340,9 @@ class BaseDataType():
         """
         Overloading operator %
         """
+        if self._is_x() or _is_x(other):
+            return self.copy().set_x_value()
+
         if isinstance(other, int):
             res = self.to_native() % other
         elif isinstance(other, BaseDataType):
@@ -296,6 +364,9 @@ class BaseDataType():
         """
         Overloading operator **
         """
+        if self._is_x() or _is_x(other):
+            return self.copy().set_x_value()
+
         if isinstance(other, int):
             res = int(self.to_native() ** other)
         elif isinstance(other, BaseDataType):
@@ -317,6 +388,9 @@ class BaseDataType():
         """
         Overloading operator >>
         """
+        if self._is_x() or _is_x(other):
+            return self.copy().set_x_value()
+
         if isinstance(other, int):
             res = self.to_native() >> other
         elif isinstance(other, BaseDataType):
@@ -338,6 +412,9 @@ class BaseDataType():
         """
         Overloading operator <<
         """
+        if self._is_x() or _is_x(other):
+            return self.copy().set_x_value()
+
         if isinstance(other, int):
             res = self.to_native() << other
         elif isinstance(other, BaseDataType):
@@ -359,6 +436,9 @@ class BaseDataType():
         """
         Overloading operator &
         """
+        if self._is_x() or _is_x(other):
+            return self.copy().set_x_value()
+
         if isinstance(other, int):
             res = self.value & other
         elif isinstance(other, BaseDataType):
@@ -380,6 +460,9 @@ class BaseDataType():
         """
         Overloading operator |
         """
+        if self._is_x() or _is_x(other):
+            return self.copy().set_x_value()
+
         if isinstance(other, int):
             res = self.value | other
         elif isinstance(other, BaseDataType):
@@ -401,6 +484,9 @@ class BaseDataType():
         """
         Overloading operator ^
         """
+        if self._is_x() or _is_x(other):
+            return self.copy().set_x_value()
+
         if isinstance(other, int):
             res = self.value ^ other
         elif isinstance(other, BaseDataType):
@@ -422,6 +508,9 @@ class BaseDataType():
         """
         Overloading operator <
         """
+        if self._is_x() or _is_x(other):
+            self._raise_value_error()
+
         if isinstance(other, int):
             res = self.to_native() < other
         elif isinstance(other, BaseDataType):
@@ -435,6 +524,9 @@ class BaseDataType():
         """
         Overloading operator >
         """
+        if self._is_x() or _is_x(other):
+            self._raise_value_error()
+
         if isinstance(other, int):
             res = self.to_native() > other
         elif isinstance(other, BaseDataType):
@@ -448,6 +540,9 @@ class BaseDataType():
         """
         Overloading operator <=
         """
+        if self._is_x() or _is_x(other):
+            self._raise_value_error()
+
         if isinstance(other, int):
             res = self.to_native() <= other
         elif isinstance(other, BaseDataType):
@@ -461,6 +556,9 @@ class BaseDataType():
         """
         Overloading operator >=
         """
+        if self._is_x() or _is_x(other):
+            self._raise_value_error()
+
         if isinstance(other, int):
             res = self.to_native() >= other
         elif isinstance(other, BaseDataType):
@@ -474,6 +572,9 @@ class BaseDataType():
         """
         Overloading operator ==
         """
+        if self._is_x() or _is_x(other):
+            self._raise_value_error()
+
         if isinstance(other, int):
             res = self.to_native() == other
         elif isinstance(other, BaseDataType):
@@ -487,6 +588,9 @@ class BaseDataType():
         """
         Overloading operator !=
         """
+        if self._is_x() or _is_x(other):
+            self._raise_value_error()
+
         if isinstance(other, int):
             res = self.to_native() != other
         elif isinstance(other, BaseDataType):
@@ -500,6 +604,9 @@ class BaseDataType():
         """
         Overloading unary operator -
         """
+        if self._is_x():
+            return self.copy().set_x_value()
+
         res = - self.to_native()
         return self.copy().from_native(res)
 
@@ -513,5 +620,8 @@ class BaseDataType():
         """
         Overloading unary operator ~
         """
+        if self._is_x():
+            return self.copy().set_x_value()
+
         res = ((1 << self.width) - 1) - self.value
         return self.copy().from_native(res)

@@ -20,9 +20,9 @@ class ArmRegFile:
                  predicate_strategy: str = "ALL_TRUE",
                  data_file_path: str = None):
         self.vl = vl
-        self.r_rf = [UInt(64, 0) for _ in range(0, self.r_rf_count)]
-        self.z_rf = [UInt(vl, 0) for _ in range(0, self.z_rf_count)]
-        self.p_rf = [UInt(vl // 8, 0) for _ in range(0, self.p_rf_count)]
+        self.r_rf = [UInt(64) for _ in range(0, self.r_rf_count)]
+        self.z_rf = [UInt(vl) for _ in range(0, self.z_rf_count)]
+        self.p_rf = [UInt(vl // 8) for _ in range(0, self.p_rf_count)]
 
         if predicate_strategy == "ALL_TRUE":
             self.all_true_predicate()
@@ -36,22 +36,22 @@ class ArmRegFile:
         if n == 31:
             res = UInt(size, 0)
         else:
-            res = UInt(size, self.r_rf[n][size - 1 : 0])
+            res = self.r_rf[n][size - 1 : 0]
         return res
 
     def read_v(self, n: int, size: int):
         assert 0 <= n < self.z_rf_count
-        res = UInt(size, self.z_rf[n][size - 1 : 0])
+        res = self.z_rf[n][size - 1 : 0]
         return res
 
     def read_z(self, n: int, size: int):
         assert 0 <= n < self.z_rf_count
-        res = UInt(size, self.z_rf[n][size - 1 : 0])
+        res = self.z_rf[n][size - 1 : 0]
         return res
 
     def read_p(self, n: int, size: int):
         assert 0 <= n < self.p_rf_count
-        res = UInt(size, self.p_rf[n][size - 1 : 0])
+        res = self.p_rf[n][size - 1 : 0]
         return res
 
     def write_r(self, n: int, size: int, value: UInt):
