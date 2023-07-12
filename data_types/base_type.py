@@ -1,5 +1,71 @@
 """
-Base data type.
+Generic data type.
+
+This module defines generic data type with configurable width :code:`BaseDataType`. The value is 
+stored in :code:`BaseDataType._value` as bit string. :code:`to_native` and :code:`from_native` 
+convert bit string with python native data type.
+
+:code:`BaseDataType` cannot be used directly. Before employed, it must be inherited with following
+functions overloaded:
+
+- :code:`to_native`: Convert bit string to python native data type.
+- :code:`from_native`: Covert python native data type to bit string.
+- :code:`copy`: Return a copied instance with the same type.
+
+:code:`BaseDataType` overloading all operators defined by python as follow:
+
+================= ===================== =========== ==========
+Operator          Function              Return type X state
+================= ===================== =========== ==========
+:code:`x[a]`      :code:`__getitem__`   Self ^2     X
+:code:`x[a,b]`    :code:`__getitem__`   Self ^2     X
+:code:`x[a]=`     :code:`__setitem__`               ^1
+:code:`x[a,b]=`   :code:`__setitem__`               ^1
+:code:`a + b`     :code:`__add__`       Self        X
+:code:`a += b`    :code:`__iadd__`                  X
+:code:`a - b`     :code:`__sub__`       Self        X
+:code:`a -= b`    :code:`__isub__`                  X
+:code:`a * b`     :code:`__mul__`       Self        X
+:code:`a *= b`    :code:`__imul__`                  X
+:code:`a / b`     :code:`__truediv__`   Self        X
+:code:`a /= b`    :code:`__itruediv__`              X
+:code:`a // b`    :code:`__floordiv__`  Self        X
+:code:`a //= b`   :code:`__ifloordiv__`             X
+:code:`a % b`     :code:`__mod__`       Self        X
+:code:`a %= b`    :code:`__imod__`                  X
+:code:`a ** b`    :code:`__pow__`       Self        X
+:code:`a **= b`   :code:`__ipow__`                  X
+:code:`a >> b`    :code:`__rshift__`    Self        X
+:code:`a >>= b`   :code:`__irshift__`               X
+:code:`a << b`    :code:`__lshift__`    Self        X
+:code:`a <<= b`   :code:`__ilshift__`               X
+:code:`a & b`     :code:`__and__`       Self        X
+:code:`a &= b`    :code:`__iand__`                  X
+:code:`a | b`     :code:`__or__`        Self        X
+:code:`a |= b`    :code:`__ior__`                   X
+:code:`a ^ b`     :code:`__xor__`       Self        X
+:code:`a ^= b`    :code:`__ixor__`                  X
+:code:`a < b`     :code:`__lt__`        boolean     ValueError
+:code:`a > b`     :code:`__gt__`        boolean     ValueError
+:code:`a <= b`    :code:`__le__`        boolean     ValueError
+:code:`a >= b`    :code:`__ge__`        boolean     ValueError
+:code:`a == b`    :code:`__eq__`        boolean     ValueError
+:code:`a != b`    :code:`__ne__`        boolean     ValueError
+:code:`-x`        :code:`__neg__`       Self        X
+:code:`+x`        :code:`__pos__`       Self        X
+:code:`~x`        :code:`__invert__`    Self        X
+:code:`bool(x)`   :code:`__bool__`      boolean     ValueError
+================= ===================== =========== ==========
+
+- Note 1: if field value is X, skip operation. If field value is not X but :code:`self._value` is X, 
+  set field and set other bits to zero.
+- Note 2: return type Self means that return the same type as inherited data type.
+
+Operator can raise two kind of exception:
+
+- If either operand is not :code:`int`, :code:`float` or :code:`BaseDataType`, raise TypeError.
+- If operators cannot perform on X state, raise ValueError.
+  - Operators that return boolean value cannot operate on X state.
 """
 
 from typing import Union, Any
@@ -13,7 +79,13 @@ def _is_x(data) -> bool:
 
 class BaseDataType():
     """
-    Base data type.
+    Base bit-string data type.
+
+    This class defines a generic bit-string data type with configurable width.
+
+    Attributes:
+        _width: width of bit-string.
+        _value: value of bit-string.
     """
     def __init__(self, width: int, value: Any = None) -> Self:
         """
@@ -34,36 +106,41 @@ class BaseDataType():
         """
         return self.value is None
 
-    def __index__(self):
+    def __index__(self) -> int:
         """
-        Return an index of value, which can be convert to hex.
+        Return an index of value, which is used by :code:`hex()` or :code:`oct()`.
         """
         if self._is_x():
             return 0
         else:
             return self.value & ((1 << self.width) - 1)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
-        Return an string of value.
+        Return an string of value. Return empty string if the value is x.
         """
         if self._is_x():
             return ""
         else:
             return hex(self)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
-        Return an string of value.
+        Return an string of type and value.
         """
         if self._is_x():
             return self.__class__.__name__ + "(" + str(None) + ")"
         else:
             return self.__class__.__name__ + "(" + str(self.to_native()) + ")"
 
-    def _raise_type_error(self, op, a, b = None):
+    def _raise_type_error(self, op: str, a: Self, b: Self = None):
         """
-        raise type error.
+        Raise type error if operation cannot perform on operand a and b.
+
+        Args:
+            - op: Operation in string.
+            - a: Operand A.
+            - b: Operand B.
         """
         if b:
             msg = f"Type not support: {type(a)} {op} {type(b)}."
@@ -71,11 +148,11 @@ class BaseDataType():
             msg = f"Type not support: {op} {type(a)}"
         raise TypeError(msg)
 
-    def _raise_value_error(self):
+    def _raise_value_error(self, op: str):
         """
-        raise value error.
+        Raise X value error if operand cannot perform on X value..
         """
-        raise ValueError("Cannot operate on X value.")
+        raise ValueError("Value not support: {op} cannot operate on X value.")
 
     @property
     def width(self) -> int:
@@ -98,7 +175,7 @@ class BaseDataType():
         """
         self._value = value & ((1 << self._width) - 1)
 
-    def set_x_value(self):
+    def set_x(self):
         """
         Set data value to x.
         """
@@ -200,7 +277,7 @@ class BaseDataType():
         Return MSB.
         """
         if self._is_x():
-            self._raise_value_error()
+            self._raise_value_error("msb")
         else:
             return (self.value >> (self.width - 1)) & 0x01
 
@@ -222,10 +299,10 @@ class BaseDataType():
 
     def __add__(self, other) -> Self:
         """
-        Overloading operator +.
+        Overloading operator :code:`+`.
         """
         if self._is_x() or _is_x(other):
-            return self.copy().set_x_value()
+            return self.copy().set_x()
 
         if isinstance(other, (int, float)):
             res = self.to_native() + other
@@ -238,7 +315,7 @@ class BaseDataType():
 
     def __iadd__(self, other):
         """
-        Overloading operator +=.
+        Overloading operator :code:`+=`.
         """
         res = self.__add__(other)
         self.value = res.value
@@ -246,10 +323,10 @@ class BaseDataType():
 
     def __sub__(self, other) -> Self:
         """
-        Overloading operator -.
+        Overloading operator :code:`-`.
         """
         if self._is_x() or _is_x(other):
-            return self.copy().set_x_value()
+            return self.copy().set_x()
 
         if isinstance(other, (int, float)):
             res = self.to_native() - other
@@ -262,7 +339,7 @@ class BaseDataType():
 
     def __isub__(self, other):
         """
-        Overloading operator -=.
+        Overloading operator :code:`-=`.
         """
         res = self.__sub__(other)
         self.value = res.value
@@ -270,10 +347,10 @@ class BaseDataType():
 
     def __mul__(self, other) -> Self:
         """
-        Overloading operator *
+        Overloading operator :code:`*`.
         """
         if self._is_x() or _is_x(other):
-            return self.copy().set_x_value()
+            return self.copy().set_x()
 
         if isinstance(other, (int, float)):
             res = self.to_native() * other
@@ -286,7 +363,7 @@ class BaseDataType():
 
     def __imul__(self, other):
         """
-        Overloading operator *=.
+        Overloading operator :code:`*=`.
         """
         res = self.__mul__(other)
         self.value = res.value
@@ -294,10 +371,10 @@ class BaseDataType():
 
     def __truediv__(self, other) -> Self:
         """
-        Overloading operator /
+        Overloading operator :code:`/`.
         """
         if self._is_x() or _is_x(other):
-            return self.copy().set_x_value()
+            return self.copy().set_x()
 
         if isinstance(other, (int, float)):
             res = self.to_native() / other
@@ -310,7 +387,7 @@ class BaseDataType():
 
     def __itruediv__(self, other):
         """
-        Overloading operator /=.
+        Overloading operator :code:`/=`.
         """
         res = self.__truediv__(other)
         self.value = res.value
@@ -318,10 +395,10 @@ class BaseDataType():
 
     def __floordiv__(self, other) -> Self:
         """
-        Overloading operator //
+        Overloading operator :code:`//`.
         """
         if self._is_x() or _is_x(other):
-            return self.copy().set_x_value()
+            return self.copy().set_x()
 
         if isinstance(other, (int, float)):
             res = self.to_native() // other
@@ -334,7 +411,7 @@ class BaseDataType():
 
     def __ifloordiv__(self, other):
         """
-        Overloading operator //=.
+        Overloading operator :code:`//=`.
         """
         res = self.__floordiv__(other)
         self.value = res.value
@@ -342,10 +419,10 @@ class BaseDataType():
 
     def __mod__(self, other) -> Self:
         """
-        Overloading operator %
+        Overloading operator :code:`%`.
         """
         if self._is_x() or _is_x(other):
-            return self.copy().set_x_value()
+            return self.copy().set_x()
 
         if isinstance(other, int):
             res = self.to_native() % other
@@ -358,7 +435,7 @@ class BaseDataType():
 
     def __imod__(self, other):
         """
-        Overloading operator %=.
+        Overloading operator :code:`%=`.
         """
         res = self.__mod__(other)
         self.value = res.value
@@ -366,10 +443,10 @@ class BaseDataType():
 
     def __pow__(self, other) -> Self:
         """
-        Overloading operator **
+        Overloading operator :code:`**`.
         """
         if self._is_x() or _is_x(other):
-            return self.copy().set_x_value()
+            return self.copy().set_x()
 
         if isinstance(other, int):
             res = int(self.to_native() ** other)
@@ -382,7 +459,7 @@ class BaseDataType():
 
     def __ipow__(self, other):
         """
-        Overloading operator **=.
+        Overloading operator :code:`**=`.
         """
         res = self.__pow__(other)
         self.value = res.value
@@ -390,10 +467,10 @@ class BaseDataType():
 
     def __rshift__(self, other) -> Self:
         """
-        Overloading operator >>
+        Overloading operator :code:`>>`.
         """
         if self._is_x() or _is_x(other):
-            return self.copy().set_x_value()
+            return self.copy().set_x()
 
         if isinstance(other, int):
             res = self.to_native() >> other
@@ -406,7 +483,7 @@ class BaseDataType():
 
     def __irshift__(self, other):
         """
-        Overloading operator >>=.
+        Overloading operator :code:`>>=`.
         """
         res = self.__rshift__(other)
         self.value = res.value
@@ -414,10 +491,10 @@ class BaseDataType():
 
     def __lshift__(self, other) -> Self:
         """
-        Overloading operator <<
+        Overloading operator :code:`<<`.
         """
         if self._is_x() or _is_x(other):
-            return self.copy().set_x_value()
+            return self.copy().set_x()
 
         if isinstance(other, int):
             res = self.to_native() << other
@@ -430,7 +507,7 @@ class BaseDataType():
 
     def __ilshift__(self, other):
         """
-        Overloading operator <<=.
+        Overloading operator :code:`<<=`.
         """
         res = self.__ilshift__(other)
         self.value = res.value
@@ -438,10 +515,10 @@ class BaseDataType():
 
     def __and__(self, other) -> Self:
         """
-        Overloading operator &
+        Overloading operator :code:`&`.
         """
         if self._is_x() or _is_x(other):
-            return self.copy().set_x_value()
+            return self.copy().set_x()
 
         if isinstance(other, int):
             res = self.value & other
@@ -454,7 +531,7 @@ class BaseDataType():
 
     def __iand__(self, other):
         """
-        Overloading operator &=
+        Overloading operator :code:`&=`.
         """
         res = self.__and__(other)
         self.value = res.value
@@ -462,10 +539,10 @@ class BaseDataType():
 
     def __or__(self, other) -> Self:
         """
-        Overloading operator |
+        Overloading operator :code:`|`.
         """
         if self._is_x() or _is_x(other):
-            return self.copy().set_x_value()
+            return self.copy().set_x()
 
         if isinstance(other, int):
             res = self.value | other
@@ -478,7 +555,7 @@ class BaseDataType():
 
     def __ior__(self, other):
         """
-        Overloading operator |=
+        Overloading operator :code:`|=`.
         """
         res = self.__or__(other)
         self.value = res.value
@@ -486,10 +563,10 @@ class BaseDataType():
 
     def __xor__(self, other) -> Self:
         """
-        Overloading operator ^
+        Overloading operator :code:`^`.
         """
         if self._is_x() or _is_x(other):
-            return self.copy().set_x_value()
+            return self.copy().set_x()
 
         if isinstance(other, int):
             res = self.value ^ other
@@ -502,7 +579,7 @@ class BaseDataType():
 
     def __ixor__(self, other):
         """
-        Overloading operator ^=
+        Overloading operator :code:`^=`.
         """
         res = self.__xor__(other)
         self.value = res.value
@@ -510,10 +587,10 @@ class BaseDataType():
 
     def __lt__(self, other) -> bool:
         """
-        Overloading operator <
+        Overloading operator :code:`<`.
         """
         if self._is_x() or _is_x(other):
-            self._raise_value_error()
+            self._raise_value_error("<")
 
         if isinstance(other, int):
             res = self.to_native() < other
@@ -526,10 +603,10 @@ class BaseDataType():
 
     def __gt__(self, other) -> bool:
         """
-        Overloading operator >
+        Overloading operator :code:`>`.
         """
         if self._is_x() or _is_x(other):
-            self._raise_value_error()
+            self._raise_value_error(">")
 
         if isinstance(other, int):
             res = self.to_native() > other
@@ -542,10 +619,10 @@ class BaseDataType():
 
     def __le__(self, other) -> bool:
         """
-        Overloading operator <=
+        Overloading operator :code:`<=`.
         """
         if self._is_x() or _is_x(other):
-            self._raise_value_error()
+            self._raise_value_error("<=")
 
         if isinstance(other, int):
             res = self.to_native() <= other
@@ -558,10 +635,10 @@ class BaseDataType():
 
     def __ge__(self, other) -> bool:
         """
-        Overloading operator >=
+        Overloading operator :code:`>=`.
         """
         if self._is_x() or _is_x(other):
-            self._raise_value_error()
+            self._raise_value_error(">=")
 
         if isinstance(other, int):
             res = self.to_native() >= other
@@ -574,10 +651,10 @@ class BaseDataType():
 
     def __eq__(self, other) -> bool:
         """
-        Overloading operator ==
+        Overloading operator :code:`==`.
         """
         if self._is_x() or _is_x(other):
-            self._raise_value_error()
+            self._raise_value_error("==")
 
         if isinstance(other, int):
             res = self.to_native() == other
@@ -590,10 +667,10 @@ class BaseDataType():
 
     def __ne__(self, other) -> bool:
         """
-        Overloading operator !=
+        Overloading operator :code:`!=`.
         """
         if self._is_x() or _is_x(other):
-            self._raise_value_error()
+            self._raise_value_error("!=")
 
         if isinstance(other, int):
             res = self.to_native() != other
@@ -606,26 +683,41 @@ class BaseDataType():
 
     def __neg__(self) -> Self:
         """
-        Overloading unary operator -
+        Overloading unary operator :code:`-`.
         """
         if self._is_x():
-            return self.copy().set_x_value()
+            return self.copy().set_x()
 
         res = - self.to_native()
         return self.copy().from_native(res)
 
     def __pos__(self) -> Self:
         """
-        Overloading unary operator +
+        Overloading unary operator :code:`+`.
         """
         return self.copy()
 
     def __invert__(self) -> Self:
         """
-        Overloading unary operator ~
+        Overloading unary operator :code:`~`.
         """
         if self._is_x():
-            return self.copy().set_x_value()
+            return self.copy().set_x()
 
         res = ((1 << self.width) - 1) - self.value
         return self.copy().from_native(res)
+
+    def __len__(self) -> int:
+        """
+        Return length of bit string, used by :code:`len()`.
+        """
+        return self.width
+
+    def __bool__(self) -> bool:
+        """
+        Convert value to boolean, used by :code:`bool()`.
+        """
+        if self._is_x():
+            self._raise_value_error("bool")
+
+        return bool(self.to_native())

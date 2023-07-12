@@ -19,15 +19,17 @@ string, as :code:`0xFF`.
 
 There are some situation that the value does not influence the execution of a piece of code. Hence,
 X state is support by assigning the bit string as :code:`None`.
+
+TODO: Fix point data type.
 """
 
 from .base_type import BaseDataType
 
-from .integer import Integer
-from .integer import UInt, UInt8, UInt16, UInt32, UInt64
-from .integer import SInt, SInt8, SInt16, SInt32, SInt64
+from .integer import UInt, SInt
+from .integer import uint8, uint16, uint32, uint64
+from .integer import sint8, sint16, sint32, sint64
 
 from .floating import Floating
-from .floating import FP8E4M3, FP8E5M2, Float16, HpFloat, SpFloat, DpFloat
+from .floating import fp8_e4m3, fp8_e5m2, float16, hpfloat, spfloat, dpfloat
 
 from .convert import convert

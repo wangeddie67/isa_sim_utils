@@ -1,8 +1,26 @@
 """
-Unsigned Integer data type:
+Floating-point data type
 
-- Floating
-- Float8/Float16/BFloat/HFloat/SFloat/DFloat
+This module defines floating-point data type. :code:`Floating` defines generic floating-point data
+type with configurable width of exponent and mantissa. :code:`Floating` provides :code:`to_native`
+and :code:`from_native` method to convert between bit string and native float type by python.
+
+Other functions provide data type defined by ISA.
+
+================= ======== ========
+Type              Exponent Mantissa
+================= ======== ========
+FP8 (E4M3)        4        3
+FP8 (E5M2)        5        2
+FP16              8        7
+Half-precision    5        10
+Single-precision  8        23
+Double-precision  11       52
+================= ======== ========
+
+Mantissa does not include integer part.
+
+TODO: check with softfloat.
 """
 
 from typing_extensions import Self
@@ -11,15 +29,21 @@ from .base_type import BaseDataType
 
 class Floating(BaseDataType):
     """
-    Floating data type.
+    Generic floating data type.
+
+    Width of exponent field and mantissa field is configurable.
+
+    Attributes:
+        _exp_width: With of exponent field.
+        _man_width: With of mantissa field.
     """
     def __init__(self, exp_width: bool, man_width: int, value: int = None):
         """
         Construct one data.
 
         Args:
-            signed: Signed or unsigned integer.
-            width: Width in bit.
+            exp_width: bit width of exponent field.
+            man_width: bit width of mantissa field. (Except integer part)
             value: Bit string.
         """
         self._exp_width = exp_width
@@ -30,14 +54,14 @@ class Floating(BaseDataType):
     @property
     def bias(self) -> int:
         """
-        Return bias of exponent.
+        Return exponent bias.
         """
         return (1 << (self._exp_width - 1)) - 1
 
     @property
     def exponent(self) -> int:
         """
-        Return whether integer is signed integer or unsigned integer.
+        Return exponent after bias.
         """
         exp_lsb = self._man_width
         exp_msb = self._man_width + self._exp_width - 1
@@ -47,28 +71,28 @@ class Floating(BaseDataType):
     @property
     def mantissa(self) -> float:
         """
-        Return whether integer is signed integer or unsigned integer.
+        Return mantissa after scaling to fraction, without integer part.
         """
         man_lsb = 0
         man_msb = self._man_width - 1
         return self.__getslice__(man_msb, man_lsb) / (2 ** self._man_width)
 
     @property
-    def signature(self) -> float:
+    def signature(self) -> int:
         """
-        Return signature bit.
+        Return signature bit. True means negative.
         """
         return self.msb
 
     def copy(self) -> Self:
         """
-        Copy instance of this item
+        Copy instance of this data.
         """
         return Floating(self._exp_width, self._man_width, self.value)
 
     def to_native(self) -> float:
         """
-        Convert to native integer in Python.
+        Convert to native floating-point number in Python.
         """
         signature = -1 if self.signature else 1
         exponent = self.exponent
@@ -77,18 +101,26 @@ class Floating(BaseDataType):
 
     def from_native(self, value: float) -> Self:
         """
-        Convert native integer in python to Integer.
+        Convert native floating-point number in python to Floating.
+
+        Args:
+            value: native floating value
         """
+        # Get exponent and mantissa by math library.
+        # math_man in range [0.5 1)
         math_man, math_exp = math.frexp(float(value))
 
         signature = 1 if math_man < 0 else 0
         mantissa = int((abs(math_man) * 2 - 1) * (2 ** self._man_width))
         exponent = math_exp - 1 + self.bias
+
+        # Saturating exponent.
         if exponent < 0:
             exponent = 0
         if exponent >= (1 << self._exp_width):
             exponent = (1 << self._exp_width) - 1
 
+        # Construct bit string.
         self.value = 0
         self.msb = signature
 
@@ -103,116 +135,56 @@ class Floating(BaseDataType):
         return self
 
 
-class FP8E4M3(Floating):
+def fp8_e4m3(value: int = None):
     """
-    FP8 floating-point number.
+    Generate one FP8 (E4M3) floating-point number.
+
+    Args:
+        value: Bit string.
     """
-    def __init__(self, value: int = None):
-        """
-        Construct one data.
+    return Floating(5, 2, value)
 
-        Args:
-            value: Bit string.
-        """
-        super().__init__(4, 3, value)
-
-    def copy(self) -> Self:
-        """
-        Copy instance of this item
-        """
-        return FP8E4M3(self.value)
-
-class FP8E5M2(Floating):
+def fp8_e5m2(value: int = None):
     """
-    FP8 floating-point number.
+    Generate one FP8 (E5M2) floating-point number.
+
+    Args:
+        value: Bit string.
     """
-    def __init__(self, value: int = None):
-        """
-        Construct one data.
+    return Floating(5, 2, value)
 
-        Args:
-            value: Bit string.
-        """
-        super().__init__(5, 2, value)
-
-    def copy(self) -> Self:
-        """
-        Copy instance of this item
-        """
-        return FP8E5M2(self.value)
-
-class Float16(Floating):
+def float16(value: int = None):
     """
-    FP16 floating-point number.
+    Generate one FP16 floating-point number.
+
+    Args:
+        value: Bit string.
     """
-    def __init__(self, value: int = None):
-        """
-        Construct one data.
+    return Floating(8, 7, value)
 
-        Args:
-            value: Bit string.
-        """
-        super().__init__(8, 7, value)
-
-    def copy(self) -> Self:
-        """
-        Copy instance of this item
-        """
-        return Float16(self.value)
-
-class HpFloat(Floating):
+def hpfloat(value: int = None):
     """
-    Half-precision floating-point number.
+    Generate one half-precision floating-point number.
+
+    Args:
+        value: Bit string.
     """
-    def __init__(self, value: int = None):
-        """
-        Construct one data.
+    return Floating(5, 10, value)
 
-        Args:
-            value: Bit string.
-        """
-        super().__init__(5, 10, value)
-
-    def copy(self) -> Self:
-        """
-        Copy instance of this item
-        """
-        return HpFloat(self.value)
-
-class SpFloat(Floating):
+def spfloat(value: int = None):
     """
-    Single-precision floating-point number.
+    Generate one single-precision floating-point number.
+
+    Args:
+        value: Bit string.
     """
-    def __init__(self, value: int = None):
-        """
-        Construct one data.
+    return Floating(8, 23, value)
 
-        Args:
-            value: Bit string.
-        """
-        super().__init__(8, 23, value)
-
-    def copy(self) -> Self:
-        """
-        Copy instance of this item
-        """
-        return SpFloat(self.value)
-
-class DpFloat(Floating):
+def dpfloat(value: int = None):
     """
-    Double-precision floating-point number.
+    Generate one double-precision floating-point number.
+
+    Args:
+        value: Bit string.
     """
-    def __init__(self, value: int = None):
-        """
-        Construct one data.
-
-        Args:
-            value: Bit string.
-        """
-        super().__init__(11, 52, value)
-
-    def copy(self) -> Self:
-        """
-        Copy instance of this item
-        """
-        return DpFloat(self.value)
+    return Floating(11, 52, value)

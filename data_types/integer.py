@@ -1,62 +1,55 @@
 """
-Integer data type:
+Integer data type
 
-- UInt/SInt
-- UInt8/UInt16/UInt32/UInt64
-- SInt8/SInt16/SInt32/SInt64
+This module defines integer data type. :code:`UInt` and :code:`SInt` defines generic integer data
+type with configurable width. :code:`UInt` and :code:`SInt` provide :code:`to_native` and 
+:code:`from_native` method to convert between bit string and native int type by python. 
+
+Other functions provide data type defined by ISA.
+
+TODO: check with softfloat.
 """
 
 from typing_extensions import Self
 from .base_type import BaseDataType
 
-class Integer(BaseDataType):
+class UInt(BaseDataType):
     """
-    Integer data type.
+    Generic unsigned integer data type.
+
+    Width is configurable.
     """
-    def __init__(self, signed: bool, width: int, value: int = None):
+    def __init__(self, width: int, value: int = None):
         """
         Construct one data.
 
         Args:
-            signed: Signed or unsigned integer.
             width: Width in bit.
             value: Bit string.
         """
-        self._signed = signed
-
         super().__init__(width, value)
-
-    @property
-    def signed(self) -> bool:
-        """
-        Return whether integer is signed integer or unsigned integer.
-        """
-        return self._signed
 
     def copy(self, width=None) -> Self:
         """
-        Copy instance of this item
+        Copy instance of this data.
 
         Args:
-            width: overwrite data width.
+            width: overwrite width of bit string.
         """
-        return Integer(self.signed, width if width else self.width, self.value)
+        return UInt(width if width else self.width, self.value)
 
     def to_native(self) -> int:
         """
-        Convert to native integer in Python.
+        Convert to native integer number in Python.
         """
-        if self.signed:
-            if self.msb > 0:
-                return - ((1 << self.width) - self.value)
-            else:
-                return self.value
-        else:
-            return self.value
+        return self.value
 
     def from_native(self, value: int) -> Self:
         """
-        Convert native integer in python to Integer.
+        Convert native integer number in python to UInt.
+
+        Args:
+            value: native floating value
         """
         self.value = abs(int(value))
         if value < 0:
@@ -64,206 +57,148 @@ class Integer(BaseDataType):
 
         return self
 
-    def mul_extend(self, other: Self) -> Self:
+    def mul_extend(self, other: BaseDataType) -> Self:
         """
-        Multiple two integer and increase width
+        Multiple two integer and increase width.
+
+        Args:
+            other: Another integer value.
         """
         res = self.to_native() * other.to_native()
         width = self.width + other.width
 
-        return Integer(self.signed, width).from_native(res)
+        return UInt(width).from_native(res)
 
 
-class UInt(Integer):
+def uint8(value: int = None):
     """
-    Unsigned integer
+    Generate one 8-bit unsigned integer.
+
+    Args:
+        value: Bit string.
     """
-    def __init__(self, width: int, value: int = None):
-        """
-        Construct one data.
+    return UInt(8, value)
 
-        Args:
-            signed: Signed or unsigned integer.
-            width: Width in bit.
-            value: Bit string.
-        """
-        super().__init__(False, width, value)
-
-    def copy(self, width=None) -> Self:
-        """
-        Copy instance of this item
-        """
-        return UInt(width if width else self.width, self.value)
-
-class UInt8(UInt):
+def uint16(value: int = None):
     """
-    8-bit Unsigned integer.
+    Generate one 16-bit unsigned integer.
+
+    Args:
+        value: Bit string.
     """
-    def __init__(self, value: int = None):
-        """
-        Construct one data.
+    return UInt(16, value)
 
-        Args:
-            value: Bit string.
-        """
-        super().__init__(8, value)
-
-    def copy(self, width=None) -> Self:
-        """
-        Copy instance of this item
-        """
-        return UInt8(self.value)
-
-class UInt16(UInt):
+def uint32(value: int = None):
     """
-    16-bit Unsigned integer.
+    Generate one 32-bit unsigned integer.
+
+    Args:
+        value: Bit string.
     """
-    def __init__(self, value: int = None):
-        """
-        Construct one data.
+    return UInt(32, value)
 
-        Args:
-            value: Bit string.
-        """
-        super().__init__(16, value)
-
-    def copy(self, width=None) -> Self:
-        """
-        Copy instance of this item
-        """
-        return UInt16(self.value)
-
-class UInt32(UInt):
+def uint64(value: int = None):
     """
-    32-bit Unsigned integer.
+    Generate one 64-bit unsigned integer.
+
+    Args:
+        value: Bit string.
     """
-    def __init__(self, value: int = None):
-        """
-        Construct one data.
+    return UInt(64, value)
 
-        Args:
-            value: Bit string.
-        """
-        super().__init__(32, value)
 
-    def copy(self, width=None) -> Self:
-        """
-        Copy instance of this item
-        """
-        return UInt32(self.value)
-
-class UInt64(UInt):
+class SInt(BaseDataType):
     """
-    64-bit Unsigned integer.
-    """
-    def __init__(self, value: int = None):
-        """
-        Construct one data.
+    Generic signed integer data type.
 
-        Args:
-            value: Bit string.
-        """
-        super().__init__(64, value)
-
-    def copy(self, width=None) -> Self:
-        """
-        Copy instance of this item
-        """
-        return UInt64(self.value)
-
-class SInt(Integer):
-    """
-    Signed integer
+    Width is configurable.
     """
     def __init__(self, width: int, value: int = None):
         """
         Construct one data.
 
         Args:
-            signed: Signed or unsigned integer.
             width: Width in bit.
             value: Bit string.
         """
-        super().__init__(False, width, value)
+        super().__init__(width, value)
 
     def copy(self, width=None) -> Self:
         """
-        Copy instance of this item
+        Copy instance of this data.
+
+        Args:
+            width: overwrite width of bit string.
         """
         return SInt(width if width else self.width, self.value)
 
-class SInt8(SInt):
-    """
-    8-bit Signed integer.
-    """
-    def __init__(self, value: int = None):
+    def to_native(self) -> int:
         """
-        Construct one data.
+        Convert to native integer number in Python.
+        """
+        if self.msb > 0:
+            return - ((1 << self.width) - self.value)
+        else:
+            return self.value
+
+    def from_native(self, value: int) -> Self:
+        """
+        Convert native integer number in python to UInt.
 
         Args:
-            value: Bit string.
+            value: native floating value
         """
-        super().__init__(8, value)
+        self.value = abs(int(value))
+        if value < 0:
+            self.value = ((1 << self.width) - self.value)
 
-    def copy(self, width=None) -> Self:
-        """
-        Copy instance of this item
-        """
-        return SInt8(self.value)
+        return self
 
-class SInt16(SInt):
-    """
-    16-bit Signed integer.
-    """
-    def __init__(self, value: int = None):
+    def mul_extend(self, other: BaseDataType) -> Self:
         """
-        Construct one data.
+        Multiple two integer and increase width.
 
         Args:
-            value: Bit string.
+            other: Another integer value.
         """
-        super().__init__(16, value)
+        res = self.to_native() * other.to_native()
+        width = self.width + other.width
 
-    def copy(self, width=None) -> Self:
-        """
-        Copy instance of this item
-        """
-        return SInt16(self.value)
+        return SInt(width).from_native(res)
 
-class SInt32(SInt):
+
+def sint8(value: int = None):
     """
-    32-bit Signed integer.
+    Generate one 8-bit signed integer.
+
+    Args:
+        value: Bit string.
     """
-    def __init__(self, value: int = None):
-        """
-        Construct one data.
+    return SInt(8, value)
 
-        Args:
-            value: Bit string.
-        """
-        super().__init__(32, value)
-
-    def copy(self, width=None) -> Self:
-        """
-        Copy instance of this item
-        """
-        return SInt32(self.value)
-
-class SInt64(SInt):
+def sint16(value: int = None):
     """
-    64-bit Signed integer.
+    Generate one 16-bit signed integer.
+
+    Args:
+        value: Bit string.
     """
-    def __init__(self, value: int = None):
-        """
-        Construct one data.
+    return SInt(16, value)
 
-        Args:
-            value: Bit string.
-        """
-        super().__init__(64, value)
+def sint32(value: int = None):
+    """
+    Generate one 32-bit signed integer.
 
-    def copy(self, width=None) -> Self:
-        """
-        Copy instance of this item
-        """
-        return SInt64(self.value)
+    Args:
+        value: Bit string.
+    """
+    return SInt(32, value)
+
+def sint64(value: int = None):
+    """
+    Generate one 64-bit signed integer.
+
+    Args:
+        value: Bit string.
+    """
+    return SInt(64, value)

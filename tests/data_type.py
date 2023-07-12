@@ -1,5 +1,5 @@
 import unittest
-from ..data_types import UInt, Float16
+from ..data_types import UInt, float16
 from ..data_types import convert
 
 class TestInteger(unittest.TestCase):
@@ -16,7 +16,7 @@ class TestInteger(unittest.TestCase):
 
     def test_convert(self):
         a = UInt(8, 8)
-        b = Float16(1.5)
+        b = float16(1.5)
         self.assertEqual(convert(float, a), 8.0)
         self.assertEqual(convert(int, b), 1)
 
