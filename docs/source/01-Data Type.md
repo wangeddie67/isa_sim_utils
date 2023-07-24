@@ -23,7 +23,7 @@ generic, numbers in computer architecture are defined as below:
 
 Not all of them are supported efficiently in programming languages, like C/C++ and Python. Hence,
 these data types must be redefined in ISA simulators. In general, they should be presented by a bit
-string, which presents a number with limited size. 
+string, which presents a number with a limited size. 
 
 Traditionally, the data type for an ISA module has to overload many functions for all kinds of 
 operators with different data types. However, aided by the unlimited native data type of Python, 
