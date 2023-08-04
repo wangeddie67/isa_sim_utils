@@ -1,8 +1,18 @@
-import unittest
-from ..data_types import UInt, float16
-from ..data_types import convert
+"""
+Test data types.
+"""
+
+import os
+import sys
+path = sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+import unittest  # pylint: disable=wrong-import-position
+from isa_sim_utils.data_types import UInt, float16, convert # pylint: disable=wrong-import-position
 
 class TestInteger(unittest.TestCase):
+    """
+    Test data type.
+    """
 
     def test_add(self):
         a = UInt(8, 8)

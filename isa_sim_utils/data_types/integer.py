@@ -53,7 +53,7 @@ class UInt(BaseDataType):
         """
         self.value = abs(int(value))
         if value < 0:
-            self.value = ((1 << self.width) - self.value)
+            self.value = (1 << self.width) - self.value
 
         return self
 
@@ -150,7 +150,7 @@ class SInt(BaseDataType):
         """
         self.value = abs(int(value))
         if value < 0:
-            self.value = ((1 << self.width) - self.value)
+            self.value = (1 << self.width) - self.value
 
         return self
 
