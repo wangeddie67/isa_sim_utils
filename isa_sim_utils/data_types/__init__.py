@@ -24,10 +24,13 @@ TODO: Fix point data type.
 """
 
 from .base_type import BaseDataType
+from .mask_base import MaskBase
 
 from .integer import UInt, SInt
 from .integer import uint8, uint16, uint32, uint64
 from .integer import sint8, sint16, sint32, sint64
+
+from .integer import MaskUInt
 
 from .floating import Floating
 from .floating import fp8_e4m3, fp8_e5m2, float16, hpfloat, spfloat, dpfloat

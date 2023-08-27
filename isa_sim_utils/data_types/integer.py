@@ -12,6 +12,7 @@ TODO: check with softfloat.
 
 from typing_extensions import Self
 from .base_type import BaseDataType
+from .mask_base import MaskBase
 
 class UInt(BaseDataType):
     """
@@ -68,6 +69,40 @@ class UInt(BaseDataType):
         width = self.width + other.width
 
         return UInt(width).from_native(res)
+
+    def concat_high(self, other: BaseDataType) -> Self:
+        """
+        Concat 2 vector, add other in higher bits.
+
+        Args:
+            other: Another integer value.
+        """
+        res = self.to_native() + other.to_native() << self.width
+        return UInt(self.width + other.width).from_native(res)
+
+    def concat_low(self, other: BaseDataType) -> Self:
+        """
+        Concat 2 vector, add other in lower bits.
+
+        Args:
+            other: Another integer value.
+        """
+        res = self.to_native() << other.width + other.to_native()
+        return UInt(self.width + other.width).from_native(res)
+
+    def replicate(self, n: int) -> Self:
+        """
+        Replicate .
+
+        Args:
+            N (int): replicate times.
+        """
+        elem = self.to_native()
+        res = 0
+        for i in range(0, n):
+            res += elem << i * self.width
+
+        return UInt(self.width * n).from_native(res)
 
 
 def uint8(value: int = None):
@@ -202,3 +237,21 @@ def sint64(value: int = None):
         value: Bit string.
     """
     return SInt(64, value)
+
+
+class MaskUInt(MaskBase):
+    """
+    Mask integer.
+
+    Width is configurable.
+    """
+    def __init__(self, width: int, value: int, mask: int):
+        """
+        Construct one data.
+
+        Args:
+            width: Width in bit.
+            value: Bit string.
+            mask: Mask bit string.
+        """
+        super().__init__(width, UInt(width, value), UInt(width, mask))

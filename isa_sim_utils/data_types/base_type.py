@@ -70,6 +70,7 @@ Operator can raise two kind of exception:
 
 from typing import Union, Any
 from typing_extensions import Self
+from .mask_base import MaskBase
 
 def _is_x(data) -> bool:
     """
@@ -660,6 +661,8 @@ class BaseDataType():
             res = self.to_native() == other
         elif isinstance(other, BaseDataType):
             res = self.to_native() == other.to_native()
+        elif isinstance(other, MaskBase):
+            res = other == self
         else:
             self._raise_type_error("==", self, other)
 
@@ -676,6 +679,8 @@ class BaseDataType():
             res = self.to_native() != other
         elif isinstance(other, BaseDataType):
             res = self.to_native() != other.to_native()
+        elif isinstance(other, MaskBase):
+            res = other != self
         else:
             self._raise_type_error("!=", self, other)
 
