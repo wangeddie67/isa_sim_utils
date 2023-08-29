@@ -153,7 +153,8 @@ class BaseDataType():
         """
         Raise X value error if operand cannot perform on X value..
         """
-        raise ValueError("Value not support: {op} cannot operate on X value.")
+        msg = f"Value not support: {op} cannot operate on X value."
+        raise ValueError(msg)
 
     @property
     def width(self) -> int:
